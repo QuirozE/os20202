@@ -102,7 +102,8 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     /* LAB1: adding ticks left to slee*/
-    int ticks_left;
+    /* EXTRA1: changing name to ticks_alarm*/
+    int ticks_alarm;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -128,6 +129,11 @@ const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
+
+/* EXTRA1: adding a comparaison functions between threads based on their time
+letf to sleep */
+bool thread_less_func(const struct list_elem *a, const struct list_elem *b,
+                     void *aux);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
