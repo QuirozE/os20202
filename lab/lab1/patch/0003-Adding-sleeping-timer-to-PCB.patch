@@ -1,0 +1,26 @@
+From 691ce8c4743d606ff01ff4a31b6db4ca12db8b60 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Sun, 16 Feb 2020 12:30:38 -0600
+Subject: [PATCH 3/3] Adding sleeping timer to PCB
+
+---
+ lab/pintos/src/threads/thread.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/lab/pintos/src/threads/thread.h b/lab/pintos/src/threads/thread.h
+index 7965c06..06d408e 100644
+--- a/lab/pintos/src/threads/thread.h
++++ b/lab/pintos/src/threads/thread.h
+@@ -100,6 +100,9 @@ struct thread
+ 
+     /* Owned by thread.c. */
+     unsigned magic;                     /* Detects stack overflow. */
++
++    /* LAB1: adding ticks left to slee*/
++    int ticks_left;
+   };
+ 
+ /* If false (default), use round-robin scheduler.
+-- 
+2.25.0
+
