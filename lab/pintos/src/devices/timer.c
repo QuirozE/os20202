@@ -30,6 +30,9 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+/* LAB1: adding blocked process list */
+static struct list blocked;
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -37,6 +40,9 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+
+  /* LAB1: initializing blocked list */
+  list_init(&blocked);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -92,9 +98,23 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  //while (timer_elapsed (start) < ticks) 
-  //  thread_yield (
+
+  /* LAB1: 
+  * setting ticks_left in current thread
+  * adding process to blocked list
+  * replacing thread_yield() by thread_block()
+  * /
+
+  /* previous code
+  * while (timer_elapsed (start) < ticks) 
+  * thread_yield ()
+  */
+
+  /* new code */
   int old = intr_set_level(INTR_OFF);
+  struct thread* curr = thread_current();
+  curr->ticks_left = ticks;
+  list_push_back(&blocked, &(curr->allelem));
   thread_block();
   intr_set_level(old);
 }
@@ -173,6 +193,22 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  /* LAB1
+  * iterating over blocked processes
+  * awekening ready processes
+  */
+  struct list_elem *e;
+
+  for(e = list_begin(&blocked); e != list_end(&blocked);e = list_next(e)) {
+
+      struct thread *slept = list_entry(e, struct thread, allelem);
+      slept->ticks_left--;
+
+      if(slept->ticks_left <= 0) {
+        list_remove(e);
+        thread_unblock(slept);
+      }
+  }
   ticks++;
   thread_tick ();
 }
