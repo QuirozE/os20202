@@ -322,6 +322,17 @@ thread_yield (void)
   intr_set_level (old_level);
 }
 
+/* EXTRA1: Implementing comparaison function between threads based on their time 
+left to sleep*/
+bool 
+thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+  struct thread *ta = list_entry(a, struct thread, allelem);
+  struct thread *tb = list_entry(b, struct thread, allelem);
+  
+  return ta->ticks_alarm < tb->ticks_alarm;
+}
+
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
 void
