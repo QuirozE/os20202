@@ -100,6 +100,9 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    /* LAB1: adding ticks left to slee*/
+    int ticks_left;
   };
 
 /* If false (default), use round-robin scheduler.
