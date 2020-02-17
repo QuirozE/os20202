@@ -42,11 +42,7 @@ sistemo operativo está inicializado.
 3. En Pintos cada thread utiliza un bloque de 4KB, en el cual se almacena su PCB y el stack del thread. ¿Dónde se almacenan las variables globales?
 
 Se guardan directamente en la memoria RAM, pues son referencias estáticas con 
-<<<<<<< HEAD
 tamaño conocido en tiempo de compilación.
-=======
-tamaño conocido en tiempo de ejecución.
->>>>>>> 157dde8eb835824cd50f0dbab14e6eebb6e8188d
 
 
 4. ¿Qué función tiene el thread idle de Pintos?
