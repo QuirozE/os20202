@@ -13,6 +13,14 @@ $ git am *.patch
 Then, follow the instruction in [README.md](../pintos/README.md) to build and 
 run the modified pintOS.
 
+## Extra
+
+Some optional additional modifications are in [patch/extra](patch/extra/).
+
+To apply them, first the base patches must be applied.
+
+
+
 ## Tests
 To check functionality, use the following command to run test
 
