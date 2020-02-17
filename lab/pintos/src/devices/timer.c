@@ -103,7 +103,10 @@ timer_sleep (int64_t ticks)
   * setting ticks_left in current thread
   * adding process to blocked list
   * replacing thread_yield() by thread_block()
-  * /
+  */
+  /* EXTRA1:
+  * adding processes in order, based on when they will wake up.
+  */
 
   /* previous code
   * while (timer_elapsed (start) < ticks) 
@@ -113,8 +116,8 @@ timer_sleep (int64_t ticks)
   /* new code */
   int old = intr_set_level(INTR_OFF);
   struct thread* curr = thread_current();
-  curr->ticks_left = ticks;
-  list_push_back(&blocked, &(curr->allelem));
+  curr->ticks_alarm = timer_ticks() + ticks;
+  list_insert_ordered(&blocked, &(curr->allelem), thread_less_func, NULL);
   thread_block();
   intr_set_level(old);
 }
@@ -197,16 +200,21 @@ timer_interrupt (struct intr_frame *args UNUSED)
   * iterating over blocked processes
   * awekening ready processes
   */
+
+  /* EXTRA1:
+  * using an ordered list, aweake just the process at the begining of the list
+  */
   struct list_elem *e;
 
   for(e = list_begin(&blocked); e != list_end(&blocked);e = list_next(e)) {
 
-      struct thread *slept = list_entry(e, struct thread, allelem);
-      slept->ticks_left--;
+      struct thread *asleep = list_entry(e, struct thread, allelem);
 
-      if(slept->ticks_left <= 0) {
-        list_remove(e);
-        thread_unblock(slept);
+      if(asleep->ticks_alarm <= timer_ticks()) {
+        list_pop_front(&blocked);
+        thread_unblock(asleep);
+      } else {
+        break;
       }
   }
   ticks++;
