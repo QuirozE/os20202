@@ -8,6 +8,9 @@ Soto Corderí Sandra del Mar
 1. En términos de la arquitectura Intel x86 ¿Qué significa que un thread
 o proceso está en ejecución?
 
+Significa que un hilo tiene control del procesador, y puede hacer cualquier
+accion que tenia que hacer.
+
 2. La función switch_threads es la encargada de cambiar de ejecución un
 hilo por otro. En resumen, la función sustituye los valores de ciertos
 registros. El registro EIP (Instruction Pointer o Program Counter) guarda
@@ -17,3 +20,7 @@ switch_threads no sustituye dicho registro?
 3. De las dos técnicas para implementar el calendarizador de prioridades:
 mantener la lista ordenada o buscar el máximo. ¿Cúal es más factible utilizar?
 y ¿Por qué?
+
+En los sistemas modernos se utilizan calendarizadores preemptive pues
+son más flexibles y permiten implementar sistemas interactivos (en
+los que se requiere un tiempo de respuesta alto).
