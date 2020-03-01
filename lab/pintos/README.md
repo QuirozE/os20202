@@ -37,7 +37,7 @@ The source code scripts must be accessible from any directory. The easiest way
 to do this is by modifying the system ``PATH``.
 
 ```console
-$ export PATH=$PATH:/pintOS_source_code/src/utils
+$ export PATH=$PATH:/<pintOS_source_code>/src/utils
 ```
 
 And then, just build the source code using the Makefile in 
