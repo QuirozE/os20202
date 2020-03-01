@@ -217,6 +217,8 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  /*LAB2: check if new process would be executed based on priority*/
   thread_yield();
   
   return tid;
@@ -357,6 +359,8 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+
+  /*LAB2: checking if new priority cahgenes current process*/
   thread_yield();
 }
 

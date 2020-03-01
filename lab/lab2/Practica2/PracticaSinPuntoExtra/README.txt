@@ -17,6 +17,19 @@ registros. El registro EIP (Instruction Pointer o Program Counter) guarda
 el valor de la siguiente instrucción a ejecutar. ¿Por qué la función
 switch_threads no sustituye dicho registro?
 
+En pintOS, todos los procesos hacen una llamada a la misma función para ser 
+bloqueados.
+
+Así que al momento de ser bloqueados y desbloqueados, todos los procesos 
+tiene exactamente las mismas instrucciones, hasta el fin de la llamada a la 
+función de bloqueo.
+Por lo que el EIP de todas es exactamente igual en ese momento.
+
+Las llamadas a funciones se almacenan en la pila de cada proceso. Así que 
+independietemente de que proceso llame a la función de bloqueo, al terminar la
+llamada, el procesador volverá a donde esté apuntando la pila del proceso 
+actual.
+
 3. De las dos técnicas para implementar el calendarizador de prioridades:
 mantener la lista ordenada o buscar el máximo. ¿Cúal es más factible utilizar?
 y ¿Por qué?
