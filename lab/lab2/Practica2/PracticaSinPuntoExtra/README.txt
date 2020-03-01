@@ -34,6 +34,18 @@ actual.
 mantener la lista ordenada o buscar el máximo. ¿Cúal es más factible utilizar?
 y ¿Por qué?
 
-En los sistemas modernos se utilizan calendarizadores preemptive pues
-son más flexibles y permiten implementar sistemas interactivos (en
-los que se requiere un tiempo de respuesta alto).
+En necesario hacer dos operaciones con la lista de procesos listo. 
+
+Primero hay que insertar procesos, lo cual toma lugar en el método de 
+desbloqueo. Después de hacerlo, los procesos desbloqueados esperan a ser
+ejecutados. Mateniendo la lista ordenada esto toma tiempo lineal. Buscando el 
+máximo toma tiempo constante.
+
+Y hay que consultar el próximo proceso a ser ejecutado. Al hacer esto, 
+inmediatamente se tiene que cambiar al proceso. Mateniendo la lista ordenada 
+esto toma tiempo constante. Buscando el máximo toma tiempo linela.
+
+Esto último debe tomar el menor tiempo posible, mientras que lo primero no 
+generaría problema se tarda un poco más.
+
+Así que es más conventiene mantener la lista ordenada.
