@@ -100,15 +100,6 @@ thread_init (void)
   initial_thread->tid = allocate_tid ();
 }
 
-/* LAB2: adding priority comparaison function*/
-bool
-thread_priority_compare(const struct list_elem* e1, const struct list_elem* e2, void* aux UNUSED){
-  struct thread* t1 = list_entry(e1, struct thread, elem);
-  struct thread* t2 = list_entry(e2, struct thread, elem);
-
-  return t1->priority > t2 -> priority;
-}
-
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
 void
@@ -218,9 +209,6 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  /*LAB2: check if new processes' priority changes current process*/
-  thread_yield();
-  
   return tid;
 }
 
@@ -257,9 +245,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  
-  /* LAB2: Inserting processes accodring to priority.*/
-  list_insert_ordered(&ready_list, &t->elem, thread_priority_compare, NULL);
+  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -329,9 +315,8 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread)
-    /*LAB2: inserting processes according to priority*/
-    list_insert_ordered(&ready_list, &cur->elem,thread_priority_compare,NULL);
+  if (cur != idle_thread) 
+    list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -359,9 +344,6 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
-
-  /*LAB2: checking if current processes should be changed*/
-  thread_yield();
 }
 
 /* Returns the current thread's priority. */
