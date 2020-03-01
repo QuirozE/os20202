@@ -100,8 +100,9 @@ thread_init (void)
   initial_thread->tid = allocate_tid ();
 }
 
+/* LAB2: adding priority comparaison function*/
 bool
-thread_compare(const struct list_elem* e1, const struct list_elem* e2, void* aux UNUSED){
+thread_priority_compare(const struct list_elem* e1, const struct list_elem* e2, void* aux UNUSED){
   struct thread* t1 = list_entry(e1, struct thread, elem);
   struct thread* t2 = list_entry(e2, struct thread, elem);
 
@@ -254,8 +255,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //list_push_back (&ready_list, &t->elem);
-  list_insert_ordered(&ready_list, &t->elem, thread_compare, NULL);
+  
+  /* LAB2: Inserting processes accodring to priority.*/
+  list_insert_ordered(&ready_list, &t->elem, thread_priority_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -326,8 +328,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    list_insert_ordered(&ready_list, &cur->elem,thread_compare,NULL);
-  //list_push_back (&ready_list, &cur->elem);
+    /*LAB2: inserting processes according to priority*/
+    list_insert_ordered(&ready_list, &cur->elem,thread_priority_compare,NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
