@@ -76,6 +76,7 @@ index 29b5d79..362b486 100644
 -    return idle_thread;
 -  else
 -    return list_entry (list_pop_front (&ready_list), struct thread, elem);
++  /*EXTRA2: checking all priority lists*
 +  for(int i = 0; i < 65; i++) {
 +    if (!list_empty (&(ready_list[i])))
 +      return list_entry (list_pop_front (&(ready_list[i])), struct thread, elem);
