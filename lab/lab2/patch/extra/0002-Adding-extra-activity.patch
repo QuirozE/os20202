@@ -17,7 +17,7 @@ index 29b5d79..362b486 100644
     that are ready to run but not actually running. */
 -static struct list ready_list;
 +/* EXTRA2: generating one list per priority*/
-+static struct list ready_list[65];
++static struct list ready_list[64];
  
  /* List of all processes.  Processes are added to this list
     when they are first scheduled and removed when they exit. */
@@ -27,7 +27,7 @@ index 29b5d79..362b486 100644
    lock_init (&tid_lock);
 -  list_init (&ready_list);
 +  /*EXTRA2: initializing all the priority lists*/
-+  for(int i = 0; i < 66; i++) {
++  for(int i = 0; i < 64; i++) {
 +    list_init (&(ready_list[i]));
 +  }
    list_init (&all_list);
@@ -77,7 +77,7 @@ index 29b5d79..362b486 100644
 -  else
 -    return list_entry (list_pop_front (&ready_list), struct thread, elem);
 +  /*EXTRA2: checking all priority lists*
-+  for(int i = 0; i < 65; i++) {
++  for(int i = 63; i >= 0; i--) {
 +    if (!list_empty (&(ready_list[i])))
 +      return list_entry (list_pop_front (&(ready_list[i])), struct thread, elem);
 +  }
