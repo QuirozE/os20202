@@ -23,7 +23,7 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 /* EXTRA2: generating one list per priority*/
-static struct list ready_list[65];
+static struct list ready_list[64];
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -92,7 +92,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   /*EXTRA2: initializing all the priority lists*/
-  for(int i = 0; i < 66; i++) {
+  for(int i = 0; i < 64; i++) {
     list_init (&(ready_list[i]));
   }
   list_init (&all_list);
@@ -509,9 +509,9 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
-  for(int i = 0; i < 65; i++) {
-    if (!list_empty (&(ready_list[i])))
-      return list_entry (list_pop_front (&(ready_list[i])), struct thread, elem);
+  for(int i = 63; i >= 0; i--) {
+    if (!list_empty(&(ready_list[i])))
+      return list_entry(list_pop_front (&(ready_list[i])), struct thread, elem);
   }
   return idle_thread;
 }
