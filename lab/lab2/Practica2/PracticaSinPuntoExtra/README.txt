@@ -8,8 +8,8 @@ Soto Corderí Sandra del Mar
 1. En términos de la arquitectura Intel x86 ¿Qué significa que un thread
 o proceso está en ejecución?
 
-Significa que un hilo tiene control del procesador, y puede hacer cualquier
-accion que tenia que hacer.
+Significa que un hilo tiene control de ese thread, y puede hacer cualquier
+acción que tenga que hacer.
 
 2. La función switch_threads es la encargada de cambiar de ejecución un
 hilo por otro. En resumen, la función sustituye los valores de ciertos
