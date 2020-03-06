@@ -1,0 +1,70 @@
+% type
+\documentclass{article}
+
+% format
+\usepackage[margin=1.5cm]{geometry}
+
+% font
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{lmodern}
+
+% header
+\title{
+    Sitemas Operativos 2020-1\\
+    Tarea 1
+}
+
+% language
+\usepackage[spanish]{babel}
+
+% header
+\author{
+    Edgar Quiroz
+}
+
+\begin{document}
+    \maketitle
+
+    Todas las respuestas deben estar justificadas.
+
+    \begin{enumerate}
+        \item Al terminar un proceso de E/S, el dispositivo pertinente debe 
+        interrumpir al CPU para indicar que los datos están listos, y el kernel
+        debe recuperar estos datos. Esto es muy lento. Mencione la técnica 
+        utilizada para optimizar este proceso.
+
+        \item Sean $t_1$ y $t_2$ procesos. $t_1$ ejecuta \texttt{thread\_yield}.
+        El calenderizador escoge a $t_2$ para ejecutarse. ¿Qué proceso ejecutará 
+        la línea justo despuésde la llamada a \texttt{thread\_yield}?
+
+        \item Cuando se ejecuta una rutina de interrupción, ¿siempre hay cambio
+        de contexto?
+
+        \item ¿Quién duerme a los procesos?
+
+        \item Enumere los casos de transición de un proceso del estado 
+        \texttt{running} al estado \texttt{ready}.
+
+        \item Lo más sencillo para lidiar con una interrupción sería pasar el 
+        control a un proceso especial para que determine la rutina a llamar.
+        Utilice el hecho de que los tipos de interrupción están predefinidos 
+        para dar una optimización a este método.
+
+        \item ¿Cuál es la máxima cantidad de llamadas a \texttt{wait} que se 
+        pueden completar sobre un semáforo de valor inicial $n$?
+
+        \item Hay tres maneras para pasar parámetros a una llamada al sistema.
+        Menciónelos. ¿Cuál es el más eficiente respecto a espacio y a tiempo?
+
+        \item ¿En cuantas colas puede estar formado un proceso?
+
+        \item Compara la comunicación por memoria compartida y por paso de 
+        mensajes.
+
+        \item Da dos ejemplos de instrucciones protegidas y las consecuencias en
+        el caso que no lo fueran.
+
+        \item Explica como simular la instrucción \texttt{goto} en un modelo de 
+        pila.
+    \end{enumerate}
+\end{document}
