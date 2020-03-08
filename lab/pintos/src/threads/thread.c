@@ -155,7 +155,7 @@ thread_tick (void)
   //t -> recent_cpu += 1;
 
   if(timer_ticks() % TIMER_FREQ == 0) {
-    msg("ok");
+    //msg("ok");
     int ready_threads = list_size(&ready_list);
     if(t != idle_thread) {
       ready_threads++;
@@ -176,7 +176,7 @@ thread_tick (void)
 }
 
 /*LAB3: updating load average*/
-void update_load_avg(struct thread *t) {
+/*void update_load_avg(struct thread *t) {
   int ready_threads = list_size(&ready_list);
   if(t != idle_thread) {
     ready_threads++;
@@ -186,8 +186,10 @@ void update_load_avg(struct thread *t) {
   + FIXPOINT(ready_threads, 60)
   ); 
 }
+*/
 
 /*LAB3: action function to update all recent cpu each second*/
+/*
 void update_recent_cpu_second(struct thread *t, void *aux UNUSED) {
     if(t == idle_thread) {
       return;
@@ -198,14 +200,17 @@ void update_recent_cpu_second(struct thread *t, void *aux UNUSED) {
       FIXPOINT_PRODUCT(dos, load_avg) + FIXPOINT(1, 1)
     ) + t -> nice;
 }
+*/
 
 /*LAB3: action function to update priority*/
+/*
 void update_priority(struct thread *t, void *aux UNUSED) {
   int cuatro = FIXPOINT(4, 1);
   t -> priority = PRI_MAX - FIXPOINT_TO_INT(
     FIXPOINT_DIVISION(thread_get_recent_cpu(), cuatro)
     ) - 2 * (t -> nice);
 }
+*/
 
 /* Prints thread statistics. */
 void
@@ -434,13 +439,11 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice) 
+thread_set_nice (int nice UNUSED) 
 {
   /*LAB3: setting nice*/
-  ASSERT(nice >= -20 && nice <= 20);
-
-  thread_current() -> nice = nice;
-
+  //ASSERT(nice >= -20 && nice <= 20);
+  //thread_current() -> nice = nice;
 }
 
 /* Returns the current thread's nice value. */
@@ -448,7 +451,8 @@ int
 thread_get_nice (void) 
 {
   /*LAB3: nice getter*/
-  return thread_current() -> nice;
+  //return thread_current() -> nice;
+  return 0;
 }
 
 /* Returns 100 times the system load average. */
@@ -464,9 +468,9 @@ int
 thread_get_recent_cpu (void) 
 {
   /*LAB3: getting recent CPU*/
-  struct thread* t = thread_current();
-  return FIXPOINT_TO_INT((t -> recent_cpu)*100);
-  
+  //struct thread* t = thread_current();
+  //return FIXPOINT_TO_INT((t -> recent_cpu)*100);
+  return 0;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
