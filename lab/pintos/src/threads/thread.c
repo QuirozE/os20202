@@ -11,6 +11,10 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+/*LAB3: Adding fixpoint library and time library*/
+#include "threads/fixpoint.h" 
+#include "devices/timer.h"
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -53,6 +57,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
+
+/* LAB3: Constants*/
+static int64_t load_avg;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -98,6 +105,11 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+    /*LAB3: Initializing scheduling variables*/
+  load_avg = FIXPOINT(0, 1);
+  thread_mlfqs = true;
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -137,6 +149,51 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  /* LAB3: Updating load average, recent cpu and priority*/
+
+  t -> recent_cpu += 1;
+
+  if(timer_ticks() % TIMER_FREQ == 0) {
+    update_load_avg(t);
+    thread_foreach(update_recent_cpu_second, NULL);
+  }
+
+  if(timer_ticks() % 4 == 0) {
+    thread_foreach(update_priority, NULL);
+  }
+}
+
+/*LAB3: updating load average*/
+void update_load_avg(struct thread *t) {
+  int ready_threads = list_size(&ready_list);
+  if(t != idle_thread) {
+    ready_threads++;
+  }
+  load_avg = (
+  FIXPOINT_PRODUCT(FIXPOINT(59, 60), load_avg)
+  + FIXPOINT(ready_threads, 60)
+  ); 
+}
+
+/*LAB3: action function to update all recent cpu each second*/
+void update_recent_cpu_second(struct thread *t, void *aux UNUSED) {
+    if(t == idle_thread) {
+      return;
+    }
+    int dos = FIXPOINT(2, 1);
+    t->recent_cpu = FIXPOINT_DIVISION(
+      FIXPOINT_PRODUCT(FIXPOINT_PRODUCT(dos, load_avg), t->recent_cpu),
+      FIXPOINT_PRODUCT(dos, load_avg) + FIXPOINT(1, 1)
+    ) + t -> nice;
+}
+
+/*LAB3: action function to update priority*/
+void update_priority(struct thread *t, void *aux UNUSED) {
+  int cuatro = FIXPOINT(4, 1);
+  t -> priority = PRI_MAX - FIXPOINT_TO_INT(
+    FIXPOINT_DIVISION(thread_get_recent_cpu(), cuatro)
+    ) - 2 * (t -> nice);
 }
 
 /* Prints thread statistics. */
@@ -325,7 +382,7 @@ thread_yield (void)
 /* EXTRA1: Implementing comparaison function between threads based on their time 
 left to sleep*/
 bool 
-thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
+thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
   struct thread *ta = list_entry(a, struct thread, allelem);
   struct thread *tb = list_entry(b, struct thread, allelem);
@@ -366,33 +423,39 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  /*LAB3: setting nice*/
+  ASSERT(nice >= -20 && nice <= 20);
+
+  thread_current() -> nice = nice;
+
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /*LAB3: nice getter*/
+  return thread_current() -> nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+   /*LAB3: getting load average*/
+  return FIXPOINT_TO_INT(load_avg*100);;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /*LAB3: getting recent CPU*/
+  struct thread* t = thread_current();
+  return FIXPOINT_TO_INT((t -> recent_cpu)*100);
+  
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -477,10 +540,13 @@ init_thread (struct thread *t, const char *name, int priority)
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
-  t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  /*LAB3: initializing some scheduling variables*/
+  t->nice = 0;
+  t->recent_cpu = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
