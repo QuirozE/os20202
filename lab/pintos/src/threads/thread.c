@@ -152,16 +152,27 @@ thread_tick (void)
 
   /* LAB3: Updating load average, recent cpu and priority*/
 
-  t -> recent_cpu += 1;
+  //t -> recent_cpu += 1;
 
   if(timer_ticks() % TIMER_FREQ == 0) {
-    update_load_avg(t);
-    thread_foreach(update_recent_cpu_second, NULL);
+    msg("ok");
+    int ready_threads = list_size(&ready_list);
+    if(t != idle_thread) {
+      ready_threads++;
+    }
+    load_avg = (
+    FIXPOINT_PRODUCT(FIXPOINT(59, 60), load_avg)
+    + FIXPOINT(ready_threads, 60)
+    ); 
+    //update_load_avg(t);
+    //thread_foreach(update_recent_cpu_second, NULL);
   }
 
+  /*
   if(timer_ticks() % 4 == 0) {
     thread_foreach(update_priority, NULL);
   }
+  */
 }
 
 /*LAB3: updating load average*/
@@ -545,8 +556,8 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
   /*LAB3: initializing some scheduling variables*/
-  t->nice = 0;
-  t->recent_cpu = 0;
+  //t->nice = 0;
+  //t->recent_cpu = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
