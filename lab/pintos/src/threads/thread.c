@@ -11,6 +11,11 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+
+/*LAB3: Adding fixpoint library and time library*/
+#include "threads/fixpoint.h" 
+#include "devices/timer.h"
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -53,6 +58,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
+
+/* LAB3: Constants*/
+int64_t load_avg;
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -115,6 +123,9 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+
+  /*LAB3: initizlizing load average*/
+  load_avg = 0;
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -137,6 +148,20 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  /*LAB3: updating load average*/
+  if(timer_ticks() % TIMER_FREQ == 0) {
+    //msg("%s", thread_name());
+    int ready_threads = list_size(&ready_list);
+    if(t != idle_thread) {
+      ready_threads++;
+    }
+    load_avg = (
+    FIXPOINT_PRODUCT(FIXPOINT(59, 60), load_avg)
+    + FIXPOINT(ready_threads, 60)
+    ); 
+  }
+
 }
 
 /* Prints thread statistics. */
@@ -325,7 +350,7 @@ thread_yield (void)
 /* EXTRA1: Implementing comparaison function between threads based on their time 
 left to sleep*/
 bool 
-thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
+thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
   struct thread *ta = list_entry(a, struct thread, allelem);
   struct thread *tb = list_entry(b, struct thread, allelem);
@@ -383,8 +408,8 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+   /*LAB3: getting load average*/
+  return FIXPOINT_TO_INT(load_avg*100);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
