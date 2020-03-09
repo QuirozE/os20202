@@ -59,8 +59,15 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
-/* LAB3: Constants*/
+/* LAB3: Values for mlfqs scheduling*/
 int64_t load_avg;
+int64_t recent_cpu;
+
+#define NICE_MIN -20
+#define NICE_MAX 20
+#define NICE_DEFAULT 0
+
+#define INIT_RECENT_CPU 0
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -149,19 +156,54 @@ thread_tick (void)
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 
-  /*LAB3: updating load average*/
-  if(timer_ticks() % TIMER_FREQ == 0) {
-    //msg("%s", thread_name());
-    int ready_threads = list_size(&ready_list);
-    if(t != idle_thread) {
-      ready_threads++;
-    }
-    load_avg = (
-    FIXPOINT_PRODUCT(FIXPOINT(59, 60), load_avg)
-    + FIXPOINT(ready_threads, 60)
-    ); 
-  }
 
+  /*LAB3: incremenintg recent cpu each tick*/
+  if(thread_current() != idle_thread) {
+    enum intr_level old_level = intr_disable ();
+    t -> recent_cpu ++;
+    intr_set_level (old_level);
+  }
+  
+  /*LAB3: updating values each second*/
+  if(timer_ticks() % TIMER_FREQ == 0) {
+    enum intr_level old_level = intr_disable ();
+
+    update_load_avg(t);
+    //thread_foreach(calculate_recent_cpu, NULL);
+
+    intr_set_level (old_level);
+  }
+}
+
+/*LAB3: updating load average*/
+void 
+update_load_avg(struct thread *t) 
+{
+  int ready_threads = list_size(&ready_list);
+  if(t != idle_thread) {
+    ready_threads++;
+  }
+  load_avg = (
+  FIXPOINT_PRODUCT(FIXPOINT(59, 60), load_avg)
+  + FIXPOINT(ready_threads, 60)
+  );
+}
+
+/*LAB3: action function to recalculate recent cpu*/
+void 
+calculate_recent_cpu(struct thread *t, void *aux UNUSED)
+{
+  int u = FIXPOINT(1, 1);
+  int d = FIXPOINT(2, 1);
+  t-> recent_cpu = 
+  FIXPOINT_PRODUCT(
+    FIXPOINT_DIVISION(
+      FIXPOINT_PRODUCT(d, load_avg), 
+      FIXPOINT_PRODUCT(d, load_avg) + u
+    ),
+    t -> recent_cpu 
+  )
+  + FIXPOINT(t -> nice, 1);
 }
 
 /* Prints thread statistics. */
@@ -393,15 +435,22 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  ASSERT(NICE_MIN <= nice && nice <= NICE_MAX);
+
+  enum intr_level old_level = intr_disable ();
+  thread_current() -> nice = nice;
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /*LAB3: setting nice*/
+  enum intr_level old_level = intr_disable ();
+  int nice = thread_current() -> nice;
+  intr_set_level (old_level);
+  return nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -409,15 +458,20 @@ int
 thread_get_load_avg (void) 
 {
    /*LAB3: getting load average*/
-  return FIXPOINT_TO_INT(load_avg*100);
+  enum intr_level old_level = intr_disable ();
+  int lavg = FIXPOINT_TO_INT(load_avg*100);
+  intr_set_level (old_level);
+  return lavg;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  enum intr_level old_level = intr_disable ();
+  int rcpu = FIXPOINT_TO_INT((thread_current() -> recent_cpu) * 100);
+  intr_set_level (old_level);
+  return rcpu;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -505,6 +559,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  /*LAB3: initializing recently added fields*/
+  t->recent_cpu = INIT_RECENT_CPU;
+  t->nice = NICE_DEFAULT;
   list_push_back (&all_list, &t->allelem);
 }
 

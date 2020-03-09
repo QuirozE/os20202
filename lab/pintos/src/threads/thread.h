@@ -104,6 +104,12 @@ struct thread
     /* LAB1: adding ticks left to slee*/
     /* EXTRA1: changing name to ticks_alarm*/
     int ticks_alarm;
+
+    /*LAB3: nice*/
+    int nice;
+
+    /*LAB3: recent cpu*/
+    int recent_cpu;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -132,12 +138,19 @@ void thread_yield (void);
 
 /* EXTRA1: adding a comparaison functions between threads based on their time
 letf to sleep */
-bool thread_less_func(const struct list_elem *a, const struct list_elem *b,
-                     void *aux);
+list_less_func thread_less_func;
+
+/*LAB3: updating load average*/
+void update_load_avg(struct thread *t);
+
+
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
+
+/*LAB3: recalculating recent CPU per second*/
+void calculate_recent_cpu(struct thread *t, void *aux);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
