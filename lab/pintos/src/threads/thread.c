@@ -152,35 +152,37 @@ thread_tick (void)
   else
     kernel_ticks++;
 
+  /*LAB3: updating scheduling parameters*/
+  if(thread_mlfqs) {
+    ASSERT(intr_get_level() == INTR_OFF);
+    /*LAB3: incremenintg recent cpu each tick*/
+    if(t != idle_thread) {
+      t -> recent_cpu += FIXPOINT(1, 1);
+    }
+    
+    /*LAB3: updating values each second*/
+    if(timer_ticks() % TIMER_FREQ == 0) {
+      update_load_avg();
+      thread_foreach(calculate_recent_cpu, NULL);
+    }
+    /*LAB3: updating priority every four ticks*/
+    if(timer_ticks() % 4 == 0) {
+      //thread_foreach(update_priority, NULL);
+    }
+  }
+
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
-
-
-  /*LAB3: incremenintg recent cpu each tick*/
-  if(thread_current() != idle_thread) {
-    enum intr_level old_level = intr_disable ();
-    t -> recent_cpu ++;
-    intr_set_level (old_level);
-  }
   
-  /*LAB3: updating values each second*/
-  if(timer_ticks() % TIMER_FREQ == 0) {
-    enum intr_level old_level = intr_disable ();
-
-    update_load_avg(t);
-    //thread_foreach(calculate_recent_cpu, NULL);
-
-    intr_set_level (old_level);
-  }
 }
 
 /*LAB3: updating load average*/
 void 
-update_load_avg(struct thread *t) 
+update_load_avg(void) 
 {
   int ready_threads = list_size(&ready_list);
-  if(t != idle_thread) {
+  if(thread_current() != idle_thread) {
     ready_threads++;
   }
   load_avg = (
@@ -193,17 +195,42 @@ update_load_avg(struct thread *t)
 void 
 calculate_recent_cpu(struct thread *t, void *aux UNUSED)
 {
-  int u = FIXPOINT(1, 1);
-  int d = FIXPOINT(2, 1);
-  t-> recent_cpu = 
-  FIXPOINT_PRODUCT(
-    FIXPOINT_DIVISION(
-      FIXPOINT_PRODUCT(d, load_avg), 
-      FIXPOINT_PRODUCT(d, load_avg) + u
-    ),
-    t -> recent_cpu 
-  )
-  + FIXPOINT(t -> nice, 1);
+  if(t != idle_thread) {
+    int u = FIXPOINT(1, 1);
+    int d = FIXPOINT(2, 1);
+    t-> recent_cpu = 
+    FIXPOINT_PRODUCT(
+      FIXPOINT_DIVISION(
+        FIXPOINT_PRODUCT(d, load_avg), 
+        FIXPOINT_PRODUCT(d, load_avg) + u
+      ),
+      t -> recent_cpu 
+    )
+    + FIXPOINT(t -> nice, 1);
+  }
+}
+
+/*LAB3: updating priority*/
+void
+update_priority(struct thread *t, void *aux UNUSED) {
+  if(t != idle_thread) {
+    int d = FIXPOINT(2, 1);
+    int c = FIXPOINT(4, 1);
+    int npri = (
+      FIXPOINT(PRI_MAX, 1)
+      - FIXPOINT_DIVISION(t -> recent_cpu, c)
+      - FIXPOINT_PRODUCT(d, FIXPOINT(t -> nice, 1))
+    );
+    if(npri > FIXPOINT(PRI_MAX, 1)) {
+      npri = FIXPOINT(PRI_MAX, 1);
+    }
+    if(npri < FIXPOINT(PRI_MIN, 1)) {
+      npri = FIXPOINT(PRI_MIN, 1);
+    }
+    
+    t -> priority = FIXPOINT_TO_INT(npri);
+  }
+  
 }
 
 /* Prints thread statistics. */
@@ -435,6 +462,7 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
+  /*LAB3: setting nice*/
   ASSERT(NICE_MIN <= nice && nice <= NICE_MAX);
 
   enum intr_level old_level = intr_disable ();
@@ -468,6 +496,7 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
+  /*LAB3: getting recent_cpu*/
   enum intr_level old_level = intr_disable ();
   int rcpu = FIXPOINT_TO_INT((thread_current() -> recent_cpu) * 100);
   intr_set_level (old_level);

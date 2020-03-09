@@ -141,7 +141,7 @@ letf to sleep */
 list_less_func thread_less_func;
 
 /*LAB3: updating load average*/
-void update_load_avg(struct thread *t);
+void update_load_avg(void);
 
 
 
@@ -150,7 +150,10 @@ typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
 /*LAB3: recalculating recent CPU per second*/
-void calculate_recent_cpu(struct thread *t, void *aux);
+thread_action_func calculate_recent_cpu;
+
+/**LAB3: updating priority*/
+thread_action_func update_priority;
 
 int thread_get_priority (void);
 void thread_set_priority (int);
