@@ -132,8 +132,7 @@ void thread_yield (void);
 
 /* EXTRA1: adding a comparaison functions between threads based on their time
 letf to sleep */
-bool thread_less_func(const struct list_elem *a, const struct list_elem *b,
-                     void *aux);
+list_less_func thread_less_func;
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);

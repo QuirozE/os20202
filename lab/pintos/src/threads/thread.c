@@ -71,6 +71,17 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+/* LAB2: adding priority comparaison function*/
+bool
+thread_priority_compare(const struct list_elem *e1, const struct list_elem *e2, 
+  void *aux UNUSED)
+{
+  struct thread* t1 = list_entry(e1, struct thread, elem);
+  struct thread* t2 = list_entry(e2, struct thread, elem);
+
+  return (t1->priority) > (t2 -> priority);
+}
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -209,6 +220,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+
+  /*LAB2: check if new processes' priority changes current process*/
+  thread_yield();
+  
   return tid;
 }
 
@@ -245,7 +260,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  /* LAB2: Inserting processes accodring to priority.*/
+  list_insert_ordered(&ready_list, &(t->elem), thread_priority_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -316,7 +332,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    /* LAB2: Inserting processes accodring to priority.*/
+    list_insert_ordered(&ready_list, &(cur->elem), thread_priority_compare, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -325,7 +342,7 @@ thread_yield (void)
 /* EXTRA1: Implementing comparaison function between threads based on their time 
 left to sleep*/
 bool 
-thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
+thread_less_func(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
   struct thread *ta = list_entry(a, struct thread, allelem);
   struct thread *tb = list_entry(b, struct thread, allelem);
@@ -355,6 +372,9 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+
+  /*LAB2: check if new processes' priority changes current process*/
+  thread_yield();
 }
 
 /* Returns the current thread's priority. */
