@@ -104,6 +104,11 @@ struct thread
     /* LAB1: adding ticks left to slee*/
     /* EXTRA1: changing name to ticks_alarm*/
     int ticks_alarm;
+
+    /*LAB4: backing up priorities during donations*/
+    int num_loans;
+    int org_priority;
+    int next_priority;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -133,6 +138,9 @@ void thread_yield (void);
 /* EXTRA1: adding a comparaison functions between threads based on their time
 letf to sleep */
 list_less_func thread_less_func;
+
+/*LAB2: priority comparaison between threads*/
+list_less_func thread_priority_compare;
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);

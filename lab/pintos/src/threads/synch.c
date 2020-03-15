@@ -32,6 +32,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+static bool compare_sema(const struct list_elem* e1, const struct list_elem *e2, void* aux UNUSED);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -68,7 +70,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_sema, NULL);
       thread_block ();
     }
   sema->value--;
@@ -118,6 +120,8 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+  
+  thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -335,4 +339,13 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+
+static bool
+compare_sema(const struct list_elem* e1, const struct list_elem *e2, void* aux UNUSED){
+  struct thread* d1 = list_entry(e1, struct thread, elem);
+  struct thread* d2 = list_entry(e2, struct thread, elem);
+  
+  return d1->priority > d2->priority;
 }

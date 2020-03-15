@@ -261,7 +261,7 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   /* LAB2: Inserting processes accodring to priority.*/
-  list_insert_ordered(&ready_list, &(t->elem), thread_priority_compare, NULL);
+  list_insert_ordered(&ready_list, &t->elem, thread_priority_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -333,7 +333,7 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
     /* LAB2: Inserting processes accodring to priority.*/
-    list_insert_ordered(&ready_list, &(cur->elem), thread_priority_compare, NULL);
+    list_insert_ordered(&ready_list, &cur->elem, thread_priority_compare, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -500,6 +500,12 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  /*LAB4: Initializing priority loan tracking variables*/
+  t->org_priority = priority;
+  t->next_priority = priority;
+  t->num_loans = 0;
+
   list_push_back (&all_list, &t->allelem);
 }
 
