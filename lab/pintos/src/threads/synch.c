@@ -32,6 +32,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+static bool compare_sema(const struct list_elem* e1, const struct list_elem *e2, void* aux UNUSED);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -68,7 +70,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_sema, NULL);
       thread_block ();
     }
   sema->value--;
@@ -118,6 +120,8 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+  
+  thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -179,6 +183,13 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
+
+  /* LAB4: Initializing priority backup. No donations so far, so it is set to an
+  invalid priority*/
+  lock->org_pri = PRI_MIN - 1;
+
+  /* LAB4: Number of loans is initially zero.*/
+  lock->numloans = 0;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -196,8 +207,36 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  if(lock -> holder != NULL) 
+    thread_priority_try_donate(lock);
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+}
+
+/*LAB4: Tries to donate priority if it is useful*/
+void 
+thread_priority_try_donate(struct lock *l) 
+{
+  struct thread *ben = l->holder;
+
+  //msg("pris: %d %d", l->holder->priority, thread_current() -> priority);
+
+  if(ben->priority < thread_current() -> priority) {
+    thread_priority_donate(l);
+  }
+}
+
+/* LAB4: Donates current rhread priority to lock's holder.*/
+void
+thread_priority_donate(struct lock *l)
+{
+  l->org_pri = thread_current ()->priority;
+  l->numloans ++;
+
+  struct thread *t = l->holder;
+  t->numloans++;
+  t->priority = thread_current () -> priority;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -231,9 +270,30 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  thread_restore_priority(lock);
+
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
+
+/* LAB4: restoring priority*/
+void
+thread_restore_priority(struct lock *l)
+{
+  struct thread *t = l->holder;
+
+  if(!t->numloans)
+    thread_set_priority(t->orgpri);
+  else 
+  {
+    t->priority = l->org_pri;
+    t->numloans--;
+  }
+  
+  l->org_pri = PRI_MIN - 1;
+  l->numloans--;
+}
+
 
 /* Returns true if the current thread holds LOCK, false
    otherwise.  (Note that testing whether some other thread holds
@@ -335,4 +395,13 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+
+static bool
+compare_sema(const struct list_elem* e1, const struct list_elem *e2, void* aux UNUSED){
+  struct thread* d1 = list_entry(e1, struct thread, elem);
+  struct thread* d2 = list_entry(e2, struct thread, elem);
+  
+  return d1->priority > d2->priority;
 }
