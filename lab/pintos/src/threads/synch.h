@@ -23,7 +23,7 @@ struct lock
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
     /*LAB4: backing up priority before loan*/
-    int org_pri;
+    int orgpri;
     /* LAB4: number of due loans. */
     int numloans;
   };
