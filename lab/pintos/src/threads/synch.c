@@ -194,8 +194,9 @@ lock_init (struct lock *lock)
   invalid priority*/
   lock->orgpri = PRI_MIN - 1;
 
-  /* LAB4: Number of loans is initially zero.*/
-  lock->numloans = 0;
+  /* LAB4: Loan number. No number assigned so far, so it is set to an invalid 
+  number*/
+  lock->loannum = -1;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -232,11 +233,11 @@ curr_should_loan(struct lock *l)
 static void
 thread_priority_donate(struct lock *l)
 {
-  l->numloans ++;
 
   struct thread *t = l->holder;
-  l->orgpri =  t->priority;
-  t->numloans++;
+  if(l->orgpri == -1)
+    l->orgpri =  t->priority;
+  l->loannum = ++t->numloans;
   t->priority = thread_get_priority();
 }
 
@@ -284,13 +285,16 @@ thread_priority_restore(struct lock *l)
 {
   struct thread *t = l->holder;
 
-  if(--t->numloans == 0)
+  if(t->numloans == 1) 
+  {
     t->priority = t->orgpri;
-  else 
+  }
+  else if(l->loannum == t->numloans)
+  {
     t->priority = l->orgpri;
-  
+  }
+  t->numloans--;
   l->orgpri = PRI_MIN - 1;
-  l->numloans--;
 }
 
 /* LAB4: It is checked that the current process is currently on a loan. As loans
