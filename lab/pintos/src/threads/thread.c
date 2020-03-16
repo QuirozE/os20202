@@ -351,9 +351,16 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  /*LAB2: checking if current processes should be changed*/
-  thread_yield();
+  /*LAB4: Postponing priority modifications until end of loan.*/
+  struct thread *t = thread_current ();
+  if(t->priority == t -> orgpri) 
+  {
+    t->priority = new_priority;
+    t->orgpri = new_priority;
+    /*LAB2: checking if current processes should be changed*/
+    thread_yield();
+  } else
+    t->orgpri = new_priority;
 }
 
 /* Returns the current thread's priority. */
@@ -602,7 +609,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
 /* LAB2: Comparing processes priority*/
-bool
+static bool
 thread_priority_compare(const struct list_elem* e1, const struct list_elem* e2,
  void* aux UNUSED)
 {

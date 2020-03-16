@@ -34,6 +34,12 @@
 
 static bool compare_sema(const struct list_elem* e1, const struct list_elem *e2, void* aux UNUSED);
 
+/*LAB4: utility functions*/
+static bool is_on_loan(void);
+static bool curr_should_loan(struct lock *l);
+static void thread_priority_donate(struct lock *l);
+static void thread_priority_restore(struct lock *l);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -186,7 +192,7 @@ lock_init (struct lock *lock)
 
   /* LAB4: Initializing priority backup. No donations so far, so it is set to an
   invalid priority*/
-  lock->org_pri = PRI_MIN - 1;
+  lock->orgpri = PRI_MIN - 1;
 
   /* LAB4: Number of loans is initially zero.*/
   lock->numloans = 0;
@@ -207,36 +213,31 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  if(lock -> holder != NULL) 
-    thread_priority_try_donate(lock);
+  /*LAB4: Adding priority donation*/
+  if(lock -> holder != NULL && curr_should_loan(lock)) 
+    thread_priority_donate(lock);
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
 
 /*LAB4: Tries to donate priority if it is useful*/
-void 
-thread_priority_try_donate(struct lock *l) 
+static bool
+curr_should_loan(struct lock *l) 
 {
-  struct thread *ben = l->holder;
-
-  //msg("pris: %d %d", l->holder->priority, thread_current() -> priority);
-
-  if(ben->priority < thread_current() -> priority) {
-    thread_priority_donate(l);
-  }
+  return l->holder->priority < thread_get_priority ();
 }
 
-/* LAB4: Donates current rhread priority to lock's holder.*/
-void
+/* LAB4: Donates current thread priority to lock's holder.*/
+static void
 thread_priority_donate(struct lock *l)
 {
-  l->org_pri = thread_current ()->priority;
   l->numloans ++;
 
   struct thread *t = l->holder;
+  l->orgpri =  t->priority;
   t->numloans++;
-  t->priority = thread_current () -> priority;
+  t->priority = thread_get_priority();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -270,28 +271,36 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  thread_restore_priority(lock);
+  if(!list_empty(&lock->semaphore.waiters) && is_on_loan())
+    thread_priority_restore(lock);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
 
 /* LAB4: restoring priority*/
-void
-thread_restore_priority(struct lock *l)
+static void
+thread_priority_restore(struct lock *l)
 {
   struct thread *t = l->holder;
 
-  if(!t->numloans)
-    thread_set_priority(t->orgpri);
+  if(--t->numloans == 0)
+    t->priority = t->orgpri;
   else 
-  {
-    t->priority = l->org_pri;
-    t->numloans--;
-  }
+    t->priority = l->orgpri;
   
-  l->org_pri = PRI_MIN - 1;
+  l->orgpri = PRI_MIN - 1;
   l->numloans--;
+}
+
+/* LAB4: It is checked that the current process is currently on a loan. As loans
+    happen when the waiter has strictly higher priority, this would mean that 
+    the current process has a a waiter with higher original priority (aka a 
+    loaner).*/
+static bool
+is_on_loan(void)
+{
+  return thread_get_priority() != thread_current() -> orgpri;
 }
 
 
