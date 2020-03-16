@@ -100,6 +100,13 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    /* LAB4: original priority back up. Used for restoration after loans are 
+    concluded. */
+    int orgpri;
+
+    /* LAB4: amount of pending due loans before restoring priority*/
+    int numloans;
   };
 
 /* If false (default), use round-robin scheduler.
