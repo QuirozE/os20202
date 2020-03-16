@@ -25,7 +25,7 @@ struct lock
     /*LAB4: backing up priority before loan*/
     int orgpri;
     /* LAB4: number of due loans. */
-    int numloans;
+    int loannum;
   };
 
 void lock_init (struct lock *);
