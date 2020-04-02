@@ -61,6 +61,10 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  /*LAB5: calling function to stack argmunts in user memory*/
+  if(success)
+    if_.esp = prepare_stack(file_name, PHYS_BASE);
+
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
@@ -76,18 +80,98 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
-/* Prints the values of the given memory region. No restrictions are put on the
-   received interval, so use with caution.
+/*LAB5: Writes all the appropriate values into the current user memory*/
+uint32_t
+prepare_stack(char *words, uint32_t end)
+{
+}
+
+/* LAB5: Copies blank separated strings into current user stack and returns a
+stack pointer to top of the stack.*/
+uint8_t *
+copy_args_vals(char *args, uint8_t *end) 
+{
+  /* If no args, do nothing. This is to prevent out of bound error in the
+     following lines.*/
+  if(strlen(args) == 0) return end;
+
+  char *it = args[strlen(args)-1]; /*args iterator*/
+  uint8_t *sp = end; /*stack iterator*/
+
+  *sp = '\0'; sp--; /*adding last end of line*/
+
+  /*Iterating the args in reverse order*/
+  while(it >= args) 
+  {
+    /* If not in a word, get end of next word and add end of line to stack. */
+    if(*it == ' ')
+    {
+      *sp = '\0'; sp--;
+      it = r_next_word(it);
+    }
+    
+    /* Copying char values to the stack */
+    *sp = *it;
+    sp--;
+    it--;
+  }
+  /* sp is diminished in the last line of the cycle, so it points one element
+     before the first argument character*/
+  return sp+1; 
+}
+
+/* LAB5: Copies address of each args value already in the stack adn returns
+   pointer to top of the stack.*/
+uint32_t *
+copy_args_addr(char *args, uint8_t *init, uint8_t *end)
+{
+  uint32_t *sp = (uint32_t)init; /* sp to iterate the new section of the stack*/
+  sp--; /* skiping word_align*/
+  *sp = '\0'; sp--; /* adding end of array to stack*/
+
+  uint8_t *it = end - 1; /*to iterate values in stack, ignoring last char*/
+
+  /* iteration values in reverse order*/
+  while(it > init) {
+    /* marks separation of values*/
+    if(*it == '\0') {
+      /*separation provides begining of interior values*/
+      *sp = it+1;
+      sp--;
+    }
+    it--;
+  }
+  
+  *sp = it; /* begining of first word, not detected in previous loop*/
+
+  return sp;
+}
+
+/* LAB5: get next pointer to non blank char in reverse order starting from the
+   given pointer. */
+uint8_t*
+r_next_word(char *words) {
+  char *n = words;
+  while(*n == ' ') n--;
+  return n;
+}
+
+
+/* LAB5: Prints the values of the given memory region. No restrictions are put
+   on the received interval, so use with caution.
    For debuggin purposes.
 */
-static void
-print ( void * begin , void * end ) {
+static void 
+print ( void * begin , void * end ) 
+{
   void * current = end ;
 
   printf (" address \t integer \t char \n");
   while ( current >= begin ) {
-  printf ("%p \t %d \t %c\n", current , *( char *) current , *( char *) current );
-  current --;
+    printf (
+      "%p \t %d \t %c\n", current , *( char *) current , *( char *) current
+    );
+    current --;
   }
 }
 
