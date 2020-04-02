@@ -76,6 +76,21 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+/* Prints the values of the given memory region. No restrictions are put on the
+   received interval, so use with caution.
+   For debuggin purposes.
+*/
+static void
+print ( void * begin , void * end ) {
+  void * current = end ;
+
+  printf (" address \t integer \t char \n");
+  while ( current >= begin ) {
+  printf ("%p \t %d \t %c\n", current , *( char *) current , *( char *) current );
+  current --;
+  }
+}
+
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
