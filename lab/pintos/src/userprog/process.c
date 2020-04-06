@@ -17,19 +17,9 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-/* LAB5: including timer for provisional implementation of process_wait*/
-#include "devices/timer.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-
-/*LAB5: Declaring auxiliar functions*/
-static void* prepare_stack(char *words, void *end);
-static uint8_t *copy_args_vals(char *args, uint8_t *end);
-static uint32_t *copy_args_addr(uint8_t *init, uint8_t *end);
-static char *last_char(char *str);
-static char *r_next_word(char *words);
-static void print_mem(void *begin, void *end);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -49,9 +39,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  /* LAB5: ignoring arguments while naming thread.*/
-  char *args;
-  tid = thread_create (strtok_r(file_name, " ", &args), PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -71,20 +59,7 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  
-  /* LAB5: backing up file name and args into words to modify while copying 
-     values into usr stack.*/
-  char *args;
-  char words[strlen(file_name)];
-  strlcpy(words, file_name, strlen(file_name) + 1);
-
-  /* LAB5: spliting file name into program name and args, and using it to load
-     the file. */
-  success = load (strtok_r(file_name, " ", &args), &if_.eip, &if_.esp);
-
-  /*LAB5: calling function to stack arguments in user memory*/
-  if(success)
-    if_.esp = prepare_stack(words, PHYS_BASE-1);
+  success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -99,125 +74,6 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
-}
-
-/*LAB5: Writes all the appropriate values into the current user memory*/
-static void*
-prepare_stack(char *words, void *end_)
-{
-  uint8_t *end = (uint8_t*)end_; /* end of user memory*/
-  uint8_t *p = copy_args_vals(words, end);
-
-  *p = (uint8_t) 0; p--; /* setting word align (1byte), updating stack pointer*/
-
-  /* p points to end of argv, +2 bytes to skip argv and word align into the
-  begining of the value section*/
-  uint32_t *k = copy_args_addr(p+2, end); 
-
-  /* p points to las pos of argv and k points to argv pointer, which is one
-  position before the begining of argv, so one extra arg is counted*/
-  int num_args = ((uint32_t*)p - k) - 1;
-
-  *k = (uint32_t)(k+1); k--; /* setting argv reference*/
-
-  *k = num_args; k--; /*setting argc*/
-
-  return (void*)k;
-}
-
-/* LAB5: Copies blank separated strings into current user stack and returns a
-stack pointer to top of the stack.*/
-static uint8_t *
-copy_args_vals(char *args, uint8_t *end) 
-{
-  char *it = last_char(args); /*args iterator*/
-  uint8_t *sp = end; /*stack iterator*/
-
-  *sp = '\0'; sp--; /*adding last end of line*/
-
-  /*Iterating the args in reverse order*/
-  while(it >= args) 
-  {
-    /* If not in a word, get end of next word and add end of line to stack. */
-    if(*it == ' ')
-    {
-      *sp = '\0'; sp--;
-      it = r_next_word(it);
-    }
-    
-    /* Copying char values to the stack */
-    *sp = *it;
-    sp--;
-    it--;
-  }
-
-  return sp; 
-}
-
-/* LAB5: Copies address of each args value already in the stack and returns
-   pointer to top of the stack.*/
-uint32_t *
-copy_args_addr(uint8_t *init, uint8_t *end)
-{
-  /* sp to iterate the new section of the stack, skiping init of argv(4 bytes) 
-  and word align (1 byte)*/
-  uint8_t *sp_ = init - 5; uint32_t* sp = (uint32_t*)sp_;
-
-  *sp = 0; sp--; /* adding end of array to addr section of stack*/
-
-  uint8_t *it = end - 1; /*to iterate values in stack, ignoring last char*/
-
-  /* iteration values in reverse order*/
-  while(it > init) {
-    /* marks separation of values*/
-    if(*it == '\0') {
-      /*separation provides begining of interior values*/
-      *sp = (uint32_t)it+1;
-      sp--;
-    }
-    it--;
-  }
-  /* adding first word, not detected as interior value */
-  *sp = (uint32_t)it; sp--;
-  
-  return sp;
-}
-
-/* LAB5: Getting a pointer to the last character of a string*/
-static char*
-last_char(char *str) {
-  char *n = str;
-  while(*n != '\0') n++;
-  n--;
-  return n;
-}
-
-/* LAB5: get next pointer to non blank char in reverse order starting from the
-   given pointer. */
-char*
-r_next_word(char *words) {
-  char *n = words;
-  while(*n == ' ') n--;
-  return n;
-}
-
-
-/* LAB5: Prints the values of the given memory region. No restrictions are put
-   on the received interval, so use with caution.
-   For debugging purposes. */
-static void 
-print_mem ( void * begin , void * end ) 
-{
-  printf("\n\n-------------------------------------------------\n");
-  printf("Direc \t\t Entero \t Char \t Dir \n");
-  while(begin >= end) 
-  {
-    printf("%p \t %d \t\t %c \t %p\n", begin, *(char*)begin,
-    *(char*)begin, *((uint32_t**)begin));
-
-    begin--;
-  }
-  printf("-------------------------------------------------\n\n");
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
