@@ -1,0 +1,25 @@
+From 6fa678e1deb4d5b1321b92f1c7a9e4309c736325 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Mon, 6 Apr 2020 16:01:21 -0500
+Subject: [PATCH 6/8] Removing noisy spaces
+
+---
+ lab/pintos/src/userprog/syscall.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lab/pintos/src/userprog/syscall.c b/lab/pintos/src/userprog/syscall.c
+index 88e46eb..7850238 100644
+--- a/lab/pintos/src/userprog/syscall.c
++++ b/lab/pintos/src/userprog/syscall.c
+@@ -30,7 +30,7 @@ syscall_handler (struct intr_frame *f UNUSED)
+       break ;
+     }
+     case SYS_EXIT : {
+-      printf ("%s: exit (0) \n", thread_current () ->name );
++      printf ("%s: exit(0)\n", thread_current () ->name );
+       thread_exit ();
+       break ;
+     }
+-- 
+2.26.0
+

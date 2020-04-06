@@ -1,0 +1,38 @@
+From 2f852195ecc18c873fad5ed94522bad2ce05d484 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Thu, 2 Apr 2020 13:56:40 -0600
+Subject: [PATCH 1/8] Adding debbugin print, nothing is implemented yet
+
+---
+ lab/pintos/src/userprog/process.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/lab/pintos/src/userprog/process.c b/lab/pintos/src/userprog/process.c
+index 7d7bd44..e7309e3 100644
+--- a/lab/pintos/src/userprog/process.c
++++ b/lab/pintos/src/userprog/process.c
+@@ -76,6 +76,21 @@ start_process (void *file_name_)
+   NOT_REACHED ();
+ }
+ 
++/* Prints the values of the given memory region. No restrictions are put on the
++   received interval, so use with caution.
++   For debuggin purposes.
++*/
++static void
++print ( void * begin , void * end ) {
++  void * current = end ;
++
++  printf (" address \t integer \t char \n");
++  while ( current >= begin ) {
++  printf ("%p \t %d \t %c\n", current , *( char *) current , *( char *) current );
++  current --;
++  }
++}
++
+ /* Waits for thread TID to die and returns its exit status.  If
+    it was terminated by the kernel (i.e. killed due to an
+    exception), returns -1.  If TID is invalid or if it was not a
+-- 
+2.26.0
+

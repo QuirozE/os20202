@@ -1,0 +1,182 @@
+From 01ff299cef25cc0f2c92c26b10c5973405347c56 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Mon, 6 Apr 2020 10:52:18 -0500
+Subject: [PATCH 4/8] Valid argument values in stack, can't test anything else
+ until filename is split into words
+
+---
+ lab/pintos/src/userprog/process.c | 84 ++++++++++++++++++++++---------
+ 1 file changed, 59 insertions(+), 25 deletions(-)
+
+diff --git a/lab/pintos/src/userprog/process.c b/lab/pintos/src/userprog/process.c
+index a4688d1..023c36b 100644
+--- a/lab/pintos/src/userprog/process.c
++++ b/lab/pintos/src/userprog/process.c
+@@ -17,10 +17,21 @@
+ #include "threads/palloc.h"
+ #include "threads/thread.h"
+ #include "threads/vaddr.h"
++/* LAB5: including timer for provisional implementation of process_wait*/
++#include "devices/timer.h"
+ 
+ static thread_func start_process NO_RETURN;
+ static bool load (const char *cmdline, void (**eip) (void), void **esp);
+ 
++/*LAB5: Declaring auxiliar functions*/
++static void* prepare_stack(char *words, void *end);
++static uint8_t *copy_args_vals(char *args, uint8_t *end);
++static uint32_t *copy_args_addr(uint8_t *init, uint8_t *end);
++static char *last_char(char *str);
++static char *r_next_word(char *words);
++static char *first_word(char *str);
++static void print_mem(void *begin, void *end);
++
+ /* Starts a new thread running a user program loaded from
+    FILENAME.  The new thread may be scheduled (and may even exit)
+    before process_execute() returns.  Returns the new process's
+@@ -63,7 +74,7 @@ start_process (void *file_name_)
+ 
+   /*LAB5: calling function to stack argmunts in user memory*/
+   if(success)
+-    if_.esp = prepare_stack(file_name, PHYS_BASE);
++    if_.esp = (void*) prepare_stack(file_name, (uint8_t*)PHYS_BASE-1);
+ 
+   /* If load failed, quit. */
+   palloc_free_page (file_name);
+@@ -81,45 +92,47 @@ start_process (void *file_name_)
+ }
+ 
+ /*LAB5: Writes all the appropriate values into the current user memory*/
+-uint32_t
+-prepare_stack(char *words, uint32_t end)
++static void*
++prepare_stack(char *words, void *end_)
+ {
++  uint8_t *end = (uint8_t*)end_;
+   uint8_t *p = copy_args_vals(words, end);
+ 
+-  *p = (uint8_t) 0; p-=4; /* setting word align, updating stack pointer */
++  *p = (uint8_t) 0; p--; /* setting word align (1byte), updating stack pointer*/
+ 
+-  print_mem(p, end);
++  //print_mem(p, end);
+ 
+   /* p points to end of argv, +2 bytes to skip argv and word align into the
+   begining of the value section*/
+-  uint32_t *k = copy_args_addr(p+8, end); 
++  uint32_t *k = copy_args_addr(p+2, end); 
+ 
+-  print_mem(k, end);
++  //print_mem(k, end);
+ 
+   /* p points to las pos of argv and k points to argv pointer, which is one
+   position before the begining of argv, so one extra arg is counted*/
+-  int num_args = ((p - k) / 4) - 1;
++  int num_args = ((uint32_t*)p - k) - 1;
+ 
+-  *k = k-4; k-=4; /* setting argv reference*/
++  *k = (uint32_t)(k+1); k--; /* setting argv reference*/
+ 
+-  *k = num_args; k-=4; /*setting argc*/
++  *k = num_args; k--; /*setting argc*/
+ 
+-  print_mem(k, end);
++  //print_mem(k, end);
+ 
+-  return k;
++  return (void*)k;
+ 
+ }
+ 
+ /* LAB5: Copies blank separated strings into current user stack and returns a
+ stack pointer to top of the stack.*/
+-uint8_t *
++static uint8_t *
+ copy_args_vals(char *args, uint8_t *end) 
+ {
++  //printf("%x\n", end);
+   /* If no args, do nothing. This is to prevent out of bound error in the
+      following lines.*/
+-  if(strlen(args) == 0) return end;
++  //if(strlen(args) == 0) return end;
+ 
+-  char *it = args[strlen(args)-1]; /*args iterator*/
++  char *it = last_char(args); /*args iterator*/
+   uint8_t *sp = end; /*stack iterator*/
+ 
+   *sp = '\0'; sp--; /*adding last end of line*/
+@@ -127,6 +140,7 @@ copy_args_vals(char *args, uint8_t *end)
+   /*Iterating the args in reverse order*/
+   while(it >= args) 
+   {
++    //printf("%c\n", *it);
+     /* If not in a word, get end of next word and add end of line to stack. */
+     if(*it == ' ')
+     {
+@@ -148,11 +162,11 @@ copy_args_vals(char *args, uint8_t *end)
+ uint32_t *
+ copy_args_addr(uint8_t *init, uint8_t *end)
+ {
+-  /* sp to iterate the new section of the stack, skiping init of argv and word
+-  align*/
+-  uint32_t *sp = (uint32_t)(init - 8); 
++  /* sp to iterate the new section of the stack, skiping init of argv(4 bytes) 
++  and word align (1 byte)*/
++  uint8_t *sp_ = init - 5; uint32_t* sp = (uint32_t*)sp_;
+ 
+-  *sp = '\0'; sp-=4; /* adding end of array to stack*/
++  *sp = 0; sp--; /* adding end of array to  addr section of stack*/
+ 
+   uint8_t *it = end - 1; /*to iterate values in stack, ignoring last char*/
+ 
+@@ -161,21 +175,41 @@ copy_args_addr(uint8_t *init, uint8_t *end)
+     /* marks separation of values*/
+     if(*it == '\0') {
+       /*separation provides begining of interior values*/
+-      *sp = it+1;
+-      sp-=4;
++      *sp = (uint32_t)it+1;
++      sp--;
+     }
+     it--;
+   }
++  /* adding first word, not detected as interior value */
++  *sp = (uint32_t)it; sp--;
+   
+-  if(end != init)
+-    *sp = it; /* begining of first word, not detected in previous loop*/
++  return sp;
++}
+ 
+-  return --sp;
++static char*
++last_char(char *str) {
++  char *n = str;
++  while(*n != '\0') n++;
++  n--;
++  return n;
++}
++
++static char*
++first_word(char *str) {
++  char *it = str;
++  char *cp; *cp = '\0';
++  char *rcp = cp;
++  for(it; *it != ' ' && *it != '\0'; it++)
++  {
++    *cp = *it; cp++;
++  }
++  *cp = '\0';
++  return rcp;
+ }
+ 
+ /* LAB5: get next pointer to non blank char in reverse order starting from the
+    given pointer. */
+-uint8_t*
++char*
+ r_next_word(char *words) {
+   char *n = words;
+   while(*n == ' ') n--;
+-- 
+2.26.0
+

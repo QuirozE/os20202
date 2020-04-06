@@ -1,0 +1,103 @@
+From 87cdeee8fea959ec8b6ab25b9cb4ab7d4866d3a5 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Thu, 2 Apr 2020 19:32:26 -0600
+Subject: [PATCH 3/8] Adding first solution, not testes
+
+---
+ lab/pintos/src/userprog/process.c | 48 ++++++++++++++++++++++++-------
+ 1 file changed, 37 insertions(+), 11 deletions(-)
+
+diff --git a/lab/pintos/src/userprog/process.c b/lab/pintos/src/userprog/process.c
+index cb848af..a4688d1 100644
+--- a/lab/pintos/src/userprog/process.c
++++ b/lab/pintos/src/userprog/process.c
+@@ -84,6 +84,30 @@ start_process (void *file_name_)
+ uint32_t
+ prepare_stack(char *words, uint32_t end)
+ {
++  uint8_t *p = copy_args_vals(words, end);
++
++  *p = (uint8_t) 0; p-=4; /* setting word align, updating stack pointer */
++
++  print_mem(p, end);
++
++  /* p points to end of argv, +2 bytes to skip argv and word align into the
++  begining of the value section*/
++  uint32_t *k = copy_args_addr(p+8, end); 
++
++  print_mem(k, end);
++
++  /* p points to las pos of argv and k points to argv pointer, which is one
++  position before the begining of argv, so one extra arg is counted*/
++  int num_args = ((p - k) / 4) - 1;
++
++  *k = k-4; k-=4; /* setting argv reference*/
++
++  *k = num_args; k-=4; /*setting argc*/
++
++  print_mem(k, end);
++
++  return k;
++
+ }
+ 
+ /* LAB5: Copies blank separated strings into current user stack and returns a
+@@ -115,19 +139,20 @@ copy_args_vals(char *args, uint8_t *end)
+     sp--;
+     it--;
+   }
+-  /* sp is diminished in the last line of the cycle, so it points one element
+-     before the first argument character*/
+-  return sp+1; 
++
++  return sp; 
+ }
+ 
+ /* LAB5: Copies address of each args value already in the stack adn returns
+    pointer to top of the stack.*/
+ uint32_t *
+-copy_args_addr(char *args, uint8_t *init, uint8_t *end)
++copy_args_addr(uint8_t *init, uint8_t *end)
+ {
+-  uint32_t *sp = (uint32_t)init; /* sp to iterate the new section of the stack*/
+-  sp--; /* skiping word_align*/
+-  *sp = '\0'; sp--; /* adding end of array to stack*/
++  /* sp to iterate the new section of the stack, skiping init of argv and word
++  align*/
++  uint32_t *sp = (uint32_t)(init - 8); 
++
++  *sp = '\0'; sp-=4; /* adding end of array to stack*/
+ 
+   uint8_t *it = end - 1; /*to iterate values in stack, ignoring last char*/
+ 
+@@ -137,14 +162,15 @@ copy_args_addr(char *args, uint8_t *init, uint8_t *end)
+     if(*it == '\0') {
+       /*separation provides begining of interior values*/
+       *sp = it+1;
+-      sp--;
++      sp-=4;
+     }
+     it--;
+   }
+   
+-  *sp = it; /* begining of first word, not detected in previous loop*/
++  if(end != init)
++    *sp = it; /* begining of first word, not detected in previous loop*/
+ 
+-  return sp;
++  return --sp;
+ }
+ 
+ /* LAB5: get next pointer to non blank char in reverse order starting from the
+@@ -162,7 +188,7 @@ r_next_word(char *words) {
+    For debuggin purposes.
+ */
+ static void 
+-print ( void * begin , void * end ) 
++print_mem ( void * begin , void * end ) 
+ {
+   void * current = end ;
+ 
+-- 
+2.26.0
+

@@ -1,0 +1,120 @@
+From a191a756f505f92a35e4882c38a8757b6bba1ba4 Mon Sep 17 00:00:00 2001
+From: equiroz <equiroz@ciencias.unam.mx>
+Date: Mon, 6 Apr 2020 16:36:39 -0500
+Subject: [PATCH 8/8] Deleteing commented blocks and fixing typos
+
+---
+ lab/pintos/src/userprog/process.c | 28 ++++++++++------------------
+ 1 file changed, 10 insertions(+), 18 deletions(-)
+
+diff --git a/lab/pintos/src/userprog/process.c b/lab/pintos/src/userprog/process.c
+index 99bd2fe..cdae49e 100644
+--- a/lab/pintos/src/userprog/process.c
++++ b/lab/pintos/src/userprog/process.c
+@@ -49,7 +49,7 @@ process_execute (const char *file_name)
+   strlcpy (fn_copy, file_name, PGSIZE);
+ 
+   /* Create a new thread to execute FILE_NAME. */
+-  /* LAB5: ignoring arguments for the process name.*/
++  /* LAB5: ignoring arguments while naming thread.*/
+   char *args;
+   tid = thread_create (strtok_r(file_name, " ", &args), PRI_DEFAULT, start_process, fn_copy);
+   if (tid == TID_ERROR)
+@@ -72,7 +72,8 @@ start_process (void *file_name_)
+   if_.cs = SEL_UCSEG;
+   if_.eflags = FLAG_IF | FLAG_MBS;
+   
+-  /* LAB5: backing up file name and args into words.*/
++  /* LAB5: backing up file name and args into words to modify while copying 
++     values into usr stack.*/
+   char *args;
+   char words[strlen(file_name)];
+   strlcpy(words, file_name, strlen(file_name) + 1);
+@@ -81,9 +82,9 @@ start_process (void *file_name_)
+      the file. */
+   success = load (strtok_r(file_name, " ", &args), &if_.eip, &if_.esp);
+ 
+-  /*LAB5: calling function to stack argmunts in user memory*/
++  /*LAB5: calling function to stack arguments in user memory*/
+   if(success)
+-    if_.esp = prepare_stack(words, (uint8_t*)PHYS_BASE-1);
++    if_.esp = prepare_stack(words, PHYS_BASE-1);
+ 
+   /* If load failed, quit. */
+   palloc_free_page (file_name);
+@@ -104,20 +105,15 @@ start_process (void *file_name_)
+ static void*
+ prepare_stack(char *words, void *end_)
+ {
+-  
+-  uint8_t *end = (uint8_t*)end_;
++  uint8_t *end = (uint8_t*)end_; /* end of user memory*/
+   uint8_t *p = copy_args_vals(words, end);
+ 
+   *p = (uint8_t) 0; p--; /* setting word align (1byte), updating stack pointer*/
+ 
+-  //print_mem(p, end);
+-
+   /* p points to end of argv, +2 bytes to skip argv and word align into the
+   begining of the value section*/
+   uint32_t *k = copy_args_addr(p+2, end); 
+ 
+-  //print_mem(k, end);
+-
+   /* p points to las pos of argv and k points to argv pointer, which is one
+   position before the begining of argv, so one extra arg is counted*/
+   int num_args = ((uint32_t*)p - k) - 1;
+@@ -126,10 +122,7 @@ prepare_stack(char *words, void *end_)
+ 
+   *k = num_args; k--; /*setting argc*/
+ 
+-  //print_mem(end, k);
+-
+   return (void*)k;
+-
+ }
+ 
+ /* LAB5: Copies blank separated strings into current user stack and returns a
+@@ -161,7 +154,7 @@ copy_args_vals(char *args, uint8_t *end)
+   return sp; 
+ }
+ 
+-/* LAB5: Copies address of each args value already in the stack adn returns
++/* LAB5: Copies address of each args value already in the stack and returns
+    pointer to top of the stack.*/
+ uint32_t *
+ copy_args_addr(uint8_t *init, uint8_t *end)
+@@ -170,7 +163,7 @@ copy_args_addr(uint8_t *init, uint8_t *end)
+   and word align (1 byte)*/
+   uint8_t *sp_ = init - 5; uint32_t* sp = (uint32_t*)sp_;
+ 
+-  *sp = 0; sp--; /* adding end of array to  addr section of stack*/
++  *sp = 0; sp--; /* adding end of array to addr section of stack*/
+ 
+   uint8_t *it = end - 1; /*to iterate values in stack, ignoring last char*/
+ 
+@@ -190,6 +183,7 @@ copy_args_addr(uint8_t *init, uint8_t *end)
+   return sp;
+ }
+ 
++/* LAB5: Getting a pointer to the last character of a string*/
+ static char*
+ last_char(char *str) {
+   char *n = str;
+@@ -210,12 +204,10 @@ r_next_word(char *words) {
+ 
+ /* LAB5: Prints the values of the given memory region. No restrictions are put
+    on the received interval, so use with caution.
+-   For debuggin purposes.
+-*/
++   For debugging purposes. */
+ static void 
+ print_mem ( void * begin , void * end ) 
+ {
+-  //void* actual = end;
+   printf("\n\n-------------------------------------------------\n");
+   printf("Direc \t\t Entero \t Char \t Dir \n");
+   while(begin >= end) 
+-- 
+2.26.0
+
