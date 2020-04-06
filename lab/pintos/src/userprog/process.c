@@ -29,7 +29,6 @@ static uint8_t *copy_args_vals(char *args, uint8_t *end);
 static uint32_t *copy_args_addr(uint8_t *init, uint8_t *end);
 static char *last_char(char *str);
 static char *r_next_word(char *words);
-static char *first_word(char *str);
 static void print_mem(void *begin, void *end);
 
 /* Starts a new thread running a user program loaded from
@@ -70,11 +69,19 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  
+  /* LAB5: backing up file name and args into words.*/
+  char *args;
+  char words[strlen(file_name)];
+  strlcpy(words, file_name, strlen(file_name) + 1);
+
+  /* LAB5: spliting file name into program name and args, and using it to load
+     the file. */
+  success = load (strtok_r(file_name, " ", &args), &if_.eip, &if_.esp);
 
   /*LAB5: calling function to stack argmunts in user memory*/
   if(success)
-    if_.esp = (void*) prepare_stack(file_name, (uint8_t*)PHYS_BASE-1);
+    if_.esp = prepare_stack(words, (uint8_t*)PHYS_BASE-1);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -95,6 +102,7 @@ start_process (void *file_name_)
 static void*
 prepare_stack(char *words, void *end_)
 {
+  
   uint8_t *end = (uint8_t*)end_;
   uint8_t *p = copy_args_vals(words, end);
 
@@ -116,7 +124,7 @@ prepare_stack(char *words, void *end_)
 
   *k = num_args; k--; /*setting argc*/
 
-  //print_mem(k, end);
+  //print_mem(end, k);
 
   return (void*)k;
 
@@ -127,11 +135,6 @@ stack pointer to top of the stack.*/
 static uint8_t *
 copy_args_vals(char *args, uint8_t *end) 
 {
-  //printf("%x\n", end);
-  /* If no args, do nothing. This is to prevent out of bound error in the
-     following lines.*/
-  //if(strlen(args) == 0) return end;
-
   char *it = last_char(args); /*args iterator*/
   uint8_t *sp = end; /*stack iterator*/
 
@@ -140,7 +143,6 @@ copy_args_vals(char *args, uint8_t *end)
   /*Iterating the args in reverse order*/
   while(it >= args) 
   {
-    //printf("%c\n", *it);
     /* If not in a word, get end of next word and add end of line to stack. */
     if(*it == ' ')
     {
@@ -194,19 +196,6 @@ last_char(char *str) {
   return n;
 }
 
-static char*
-first_word(char *str) {
-  char *it = str;
-  char *cp; *cp = '\0';
-  char *rcp = cp;
-  for(it; *it != ' ' && *it != '\0'; it++)
-  {
-    *cp = *it; cp++;
-  }
-  *cp = '\0';
-  return rcp;
-}
-
 /* LAB5: get next pointer to non blank char in reverse order starting from the
    given pointer. */
 char*
@@ -224,15 +213,17 @@ r_next_word(char *words) {
 static void 
 print_mem ( void * begin , void * end ) 
 {
-  void * current = end ;
+  //void* actual = end;
+  printf("\n\n-------------------------------------------------\n");
+  printf("Direc \t\t Entero \t Char \t Dir \n");
+  while(begin >= end) 
+  {
+    printf("%p \t %d \t\t %c \t %p\n", begin, *(char*)begin,
+    *(char*)begin, *((uint32_t**)begin));
 
-  printf (" address \t integer \t char \n");
-  while ( current >= begin ) {
-    printf (
-      "%p \t %d \t %c\n", current , *( char *) current , *( char *) current
-    );
-    current --;
+    begin--;
   }
+  printf("-------------------------------------------------\n\n");
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
