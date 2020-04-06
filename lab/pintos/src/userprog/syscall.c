@@ -30,7 +30,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break ;
     }
     case SYS_EXIT : {
-      printf ("%s: exit (0) \n", thread_current () ->name );
+      printf ("%s: exit(0)\n", thread_current () ->name );
       thread_exit ();
       break ;
     }
